@@ -1,0 +1,422 @@
+import { useState, useMemo, useEffect } from "react";
+
+const INITIAL_FORM = {
+  shopName: "",
+  productName: "",
+  price: "",
+  shopSales: "",
+  productReviews: "",
+  shopReviews: "",
+  rating: "",
+  isBestseller: false,
+  isSpecialized: false,
+  searchPosition: "",
+  notes: "",
+  circuits: "",
+};
+
+const BADGE = ({ children, color }) => (
+  <span style={{
+    background: color, color: "#fff", borderRadius: 4,
+    padding: "2px 8px", fontSize: 11, fontWeight: 700,
+    letterSpacing: 1, textTransform: "uppercase",
+  }}>{children}</span>
+);
+
+export default function App() {
+  const [competitors, setCompetitors] = useState(() => {
+    try {
+      const saved = localStorage.getItem("etsy-tracker-data");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [editIndex, setEditIndex] = useState(null);
+  const [activeTab, setActiveTab] = useState("list");
+
+  useEffect(() => {
+    try { localStorage.setItem("etsy-tracker-data", JSON.stringify(competitors)); }
+    catch {}
+  }, [competitors]);
+
+  const stats = useMemo(() => {
+    if (!competitors.length) return null;
+    const prices = competitors.map(c => parseFloat(c.price)).filter(Boolean);
+    const reviews = competitors.map(c => parseFloat(c.productReviews || c.shopReviews)).filter(Boolean);
+    const avgPrice = prices.length ? (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2) : null;
+    const minPrice = prices.length ? Math.min(...prices).toFixed(2) : null;
+    const maxPrice = prices.length ? Math.max(...prices).toFixed(2) : null;
+    const avgReviews = reviews.length ? Math.round(reviews.reduce((a, b) => a + b, 0) / reviews.length) : null;
+    const bestsellers = competitors.filter(c => c.isBestseller).length;
+    const specialized = competitors.filter(c => c.isSpecialized).length;
+    const uniqueShops = new Set(competitors.map(c => c.shopName.trim().toLowerCase())).size;
+    return { avgPrice, minPrice, maxPrice, avgReviews, bestsellers, specialized, uniqueShops };
+  }, [competitors]);
+
+  const groupedCompetitors = useMemo(() => {
+    const groups = {};
+    competitors.forEach((c, i) => {
+      const key = c.shopName.trim().toLowerCase();
+      if (!groups[key]) groups[key] = { shopName: c.shopName, products: [] };
+      groups[key].products.push({ ...c, originalIndex: i });
+    });
+    return Object.values(groups);
+  }, [competitors]);
+
+  const myPriceSuggestion = useMemo(() => {
+    if (!stats || !stats.avgPrice) return null;
+    const avg = parseFloat(stats.avgPrice);
+    return { low: (avg * 0.9).toFixed(2), avg: avg.toFixed(2), high: (avg * 1.15).toFixed(2) };
+  }, [stats]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const handleSubmit = () => {
+    if (!form.shopName || !form.price) return;
+    if (editIndex !== null) {
+      setCompetitors(c => c.map((item, i) => i === editIndex ? form : item));
+      setEditIndex(null);
+    } else {
+      setCompetitors(c => [...c, form]);
+    }
+    setForm(INITIAL_FORM);
+    setActiveTab("list");
+  };
+
+  const handleEdit = (i) => {
+    setForm(competitors[i]);
+    setEditIndex(i);
+    setActiveTab("add");
+  };
+
+  const handleDelete = (i) => {
+    setCompetitors(c => c.filter((_, idx) => idx !== i));
+  };
+
+  const css = `
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0f; }
+    .app { min-height: 100vh; background: #0a0a0f; color: #e8e0d0; font-family: 'Barlow', sans-serif; max-width: 600px; margin: 0 auto; }
+    .header { background: linear-gradient(135deg, #1a0a00 0%, #0a0a0f 60%); border-bottom: 2px solid #ff4500; padding: 20px 16px 16px; }
+    .header-title { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #ff6a20; line-height: 1; }
+    .header-sub { font-size: 12px; color: #888; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+    .tabs { display: flex; border-bottom: 1px solid #222; background: #0d0d14; position: sticky; top: 0; z-index: 10; }
+    .tab { flex: 1; padding: 14px 8px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; color: #555; cursor: pointer; border: none; background: none; transition: all 0.2s; }
+    .tab.active { color: #ff6a20; border-bottom: 2px solid #ff6a20; }
+    .content { padding: 16px; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: #12121a; border: 1px solid #222; border-radius: 8px; padding: 14px 12px; }
+    .stat-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+    .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; color: #ff6a20; }
+    .stat-sub { font-size: 11px; color: #555; margin-top: 2px; }
+    .shop-group { margin-bottom: 16px; }
+    .shop-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #1a0a00; border: 1px solid #ff450033; border-radius: 8px 8px 0 0; }
+    .shop-header-name { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #ff6a20; text-transform: uppercase; flex: 1; }
+    .shop-header-count { font-size: 11px; color: #666; background: #0a0a0f; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+    .competitor-card { background: #12121a; border-left: 1px solid #1e1e2e; border-right: 1px solid #1e1e2e; border-bottom: 1px solid #1e1e2e; padding: 14px; }
+    .competitor-card:last-child { border-radius: 0 0 8px 8px; }
+    .comp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .comp-name { font-size: 14px; font-weight: 600; color: #ccc; }
+    .comp-price { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: #ff6a20; }
+    .comp-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin: 10px 0; }
+    .comp-stat { text-align: center; background: #0a0a0f; border-radius: 6px; padding: 6px 4px; }
+    .comp-stat-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #555; }
+    .comp-stat-value { font-size: 13px; font-weight: 600; color: #ccc; margin-top: 2px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    .comp-notes { font-size: 12px; color: #666; font-style: italic; margin-top: 6px; border-top: 1px solid #1a1a26; padding-top: 6px; }
+    .comp-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .pos-tag { display: inline-block; font-size: 11px; color: #666; background: #1a1a2e; border: 1px solid #333; border-radius: 4px; padding: 1px 7px; margin-top: 4px; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: #ff4500; color: #fff; }
+    .btn-primary:hover { background: #ff6a20; }
+    .btn-outline { background: transparent; color: #888; border: 1px solid #333; }
+    .btn-outline:hover { border-color: #ff4500; color: #ff4500; }
+    .btn-danger { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
+    .btn-danger:hover { background: #c0392b; color: #fff; }
+    .btn-full { width: 100%; padding: 14px; font-size: 15px; }
+    .form-card { background: #12121a; border: 1px solid #222; border-radius: 10px; padding: 16px; }
+    .form-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #ff6a20; margin-bottom: 16px; }
+    .field { margin-bottom: 14px; }
+    .label { display: block; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-bottom: 6px; }
+    .input { width: 100%; background: #0a0a0f; border: 1px solid #2a2a3a; border-radius: 6px; padding: 10px 12px; color: #e8e0d0; font-family: 'Barlow', sans-serif; font-size: 14px; outline: none; transition: border 0.2s; }
+    .input:focus { border-color: #ff4500; }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #0a0a0f; border: 1px solid #2a2a3a; border-radius: 6px; cursor: pointer; }
+    .checkbox-row input { width: 16px; height: 16px; accent-color: #ff4500; }
+    .checkbox-label { font-size: 13px; color: #aaa; }
+    .strategy-card { background: #12121a; border: 1px solid #ff450033; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .strategy-title { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #ff6a20; margin-bottom: 10px; }
+    .strategy-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1a1a26; }
+    .strategy-row:last-child { border-bottom: none; }
+    .strategy-key { font-size: 12px; color: #888; }
+    .strategy-val { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: #fff; }
+    .tip { background: #0d1a0d; border-left: 3px solid #2ecc71; border-radius: 0 6px 6px 0; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; color: #aaa; line-height: 1.6; }
+    .tip strong { color: #2ecc71; }
+    .empty { text-align: center; padding: 48px 16px; color: #444; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-text { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: #444; }
+    .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 12px; }
+    .saved-badge { font-size: 11px; color: #2ecc71; letter-spacing: 1px; float: right; margin-top: 6px; }
+  `;
+
+  return (
+    <div className="app">
+      <style>{css}</style>
+      <div className="header">
+        <div className="header-title">🏁 Etsy Tracker</div>
+        <div className="header-sub">Análisis de competencia · Circuitos LED <span className="saved-badge">● Guardado automático</span></div>
+      </div>
+
+      <div className="tabs">
+        {[["list", "📋 Lista"], ["add", editIndex !== null ? "✏️ Editar" : "➕ Añadir"], ["strategy", "🎯 Estrategia"]].map(([id, label]) => (
+          <button key={id} className={`tab ${activeTab === id ? "active" : ""}`}
+            onClick={() => { setActiveTab(id); if (id !== "add") { setEditIndex(null); setForm(INITIAL_FORM); } }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="content">
+
+        {activeTab === "list" && (
+          <>
+            {stats && (
+              <>
+                <div className="section-title">Resumen del mercado</div>
+                <div className="stat-grid">
+                  <div className="stat-card">
+                    <div className="stat-label">Precio medio</div>
+                    <div className="stat-value">{stats.avgPrice}€</div>
+                    <div className="stat-sub">{stats.minPrice}€ – {stats.maxPrice}€</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Reseñas medias</div>
+                    <div className="stat-value">{stats.avgReviews ?? "—"}</div>
+                    <div className="stat-sub">por producto</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Tiendas</div>
+                    <div className="stat-value">{stats.uniqueShops}</div>
+                    <div className="stat-sub">{competitors.length} productos</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Bestsellers</div>
+                    <div className="stat-value">{stats.bestsellers}</div>
+                    <div className="stat-sub">{stats.specialized} especializadas</div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="section-title">
+              {stats ? `${stats.uniqueShops} tiendas · ${competitors.length} productos` : "0 competidores"}
+            </div>
+
+            {competitors.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">🏎️</div>
+                <div className="empty-text">Añade tu primer competidor</div>
+                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Ve a la pestaña Añadir</div>
+              </div>
+            ) : (
+              groupedCompetitors.map((group) => (
+                <div className="shop-group" key={group.shopName}>
+                  <div className="shop-header">
+                    <span className="shop-header-name">🏪 {group.shopName}</span>
+                    <span className="shop-header-count">{group.products.length} producto{group.products.length > 1 ? "s" : ""}</span>
+                  </div>
+                  {group.products.map((c) => (
+                    <div className="competitor-card" key={c.originalIndex}>
+                      <div className="comp-header">
+                        <div style={{ flex: 1, marginRight: 12 }}>
+                          <div className="comp-name">{c.productName || "Sin nombre de producto"}</div>
+                          {c.searchPosition && <span className="pos-tag">Posición #{c.searchPosition}</span>}
+                        </div>
+                        <div className="comp-price">{c.price}€</div>
+                      </div>
+                      <div className="badges">
+                        {c.isBestseller && <BADGE color="#e67e22">Bestseller</BADGE>}
+                        {c.isSpecialized && <BADGE color="#2980b9">Especializada</BADGE>}
+                        {c.circuits && <BADGE color="#555">{c.circuits}</BADGE>}
+                      </div>
+                      <div className="comp-stats">
+                        <div className="comp-stat">
+                          <div className="comp-stat-label">Ventas tienda</div>
+                          <div className="comp-stat-value">{c.shopSales || "—"}</div>
+                        </div>
+                        <div className="comp-stat">
+                          <div className="comp-stat-label">Reseñas prod.</div>
+                          <div className="comp-stat-value">{c.productReviews || "—"}</div>
+                        </div>
+                        <div className="comp-stat">
+                          <div className="comp-stat-label">Reseñas tienda</div>
+                          <div className="comp-stat-value">{c.shopReviews || "—"}</div>
+                        </div>
+                        <div className="comp-stat">
+                          <div className="comp-stat-label">Valoración</div>
+                          <div className="comp-stat-value">{c.rating ? `${c.rating}★` : "—"}</div>
+                        </div>
+                      </div>
+                      {c.notes && <div className="comp-notes">📝 {c.notes}</div>}
+                      <div className="comp-actions">
+                        <button className="btn btn-outline" onClick={() => handleEdit(c.originalIndex)}>Editar</button>
+                        <button className="btn btn-danger" onClick={() => handleDelete(c.originalIndex)}>Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {activeTab === "add" && (
+          <div className="form-card">
+            <div className="form-title">{editIndex !== null ? "Editar producto" : "Nuevo producto"}</div>
+            <div className="field">
+              <label className="label">Nombre de la tienda *</label>
+              <input className="input" name="shopName" value={form.shopName} onChange={handleChange} placeholder="ej. CircuitLightsShop" />
+            </div>
+            <div className="field">
+              <label className="label">Nombre del producto</label>
+              <input className="input" name="productName" value={form.productName} onChange={handleChange} placeholder="ej. LED Circuit F1 Monaco" />
+            </div>
+            <div className="input-row field">
+              <div>
+                <label className="label">Precio (€) *</label>
+                <input className="input" name="price" type="number" value={form.price} onChange={handleChange} placeholder="45" />
+              </div>
+              <div>
+                <label className="label">Posición en búsq.</label>
+                <input className="input" name="searchPosition" type="number" value={form.searchPosition} onChange={handleChange} placeholder="3" />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label">Ventas totales tienda</label>
+              <input className="input" name="shopSales" type="number" value={form.shopSales} onChange={handleChange} placeholder="850" />
+            </div>
+            <div className="input-row field">
+              <div>
+                <label className="label">Reseñas del producto</label>
+                <input className="input" name="productReviews" type="number" value={form.productReviews} onChange={handleChange} placeholder="34" />
+              </div>
+              <div>
+                <label className="label">Reseñas de la tienda</label>
+                <input className="input" name="shopReviews" type="number" value={form.shopReviews} onChange={handleChange} placeholder="11" />
+              </div>
+            </div>
+            <div className="input-row field">
+              <div>
+                <label className="label">Valoración (1-5)</label>
+                <input className="input" name="rating" type="number" step="0.1" min="1" max="5" value={form.rating} onChange={handleChange} placeholder="4.8" />
+              </div>
+              <div>
+                <label className="label">Circuitos que vende</label>
+                <input className="input" name="circuits" value={form.circuits} onChange={handleChange} placeholder="F1, MotoGP..." />
+              </div>
+            </div>
+            <div className="field">
+              <label className="checkbox-row">
+                <input type="checkbox" name="isBestseller" checked={form.isBestseller} onChange={handleChange} />
+                <span className="checkbox-label">🏆 Tiene badge Bestseller</span>
+              </label>
+            </div>
+            <div className="field">
+              <label className="checkbox-row">
+                <input type="checkbox" name="isSpecialized" checked={form.isSpecialized} onChange={handleChange} />
+                <span className="checkbox-label">🎯 Tienda especializada (solo circuitos)</span>
+              </label>
+            </div>
+            <div className="field">
+              <label className="label">Notas / observaciones</label>
+              <textarea className="input" name="notes" value={form.notes} onChange={handleChange}
+                placeholder="Qué tienen de especial, fotos, materiales, puntos débiles..." rows={3} style={{ resize: "vertical" }} />
+            </div>
+            <button className="btn btn-primary btn-full" onClick={handleSubmit}>
+              {editIndex !== null ? "Guardar cambios" : "Añadir producto"}
+            </button>
+            {editIndex !== null && (
+              <button className="btn btn-outline btn-full" style={{ marginTop: 8 }}
+                onClick={() => { setEditIndex(null); setForm(INITIAL_FORM); setActiveTab("list"); }}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        )}
+
+        {activeTab === "strategy" && (
+          <>
+            {!stats ? (
+              <div className="empty">
+                <div className="empty-icon">🎯</div>
+                <div className="empty-text">Añade competidores primero</div>
+                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>La estrategia se genera automáticamente</div>
+              </div>
+            ) : (
+              <>
+                <div className="section-title">Tu precio recomendado</div>
+                <div className="strategy-card">
+                  <div className="strategy-title">💰 Rangos de precio</div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Entrada al mercado</span>
+                    <span className="strategy-val" style={{ color: "#e74c3c" }}>{myPriceSuggestion.low}€</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Precio medio del mercado</span>
+                    <span className="strategy-val" style={{ color: "#f39c12" }}>{myPriceSuggestion.avg}€</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Precio premium (+diferenciación)</span>
+                    <span className="strategy-val" style={{ color: "#2ecc71" }}>{myPriceSuggestion.high}€</span>
+                  </div>
+                </div>
+
+                <div className="section-title">Análisis del mercado</div>
+                <div className="strategy-card">
+                  <div className="strategy-title">📊 Lo que viste</div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Tiendas analizadas</span>
+                    <span className="strategy-val">{stats.uniqueShops}</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Productos analizados</span>
+                    <span className="strategy-val">{competitors.length}</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Con badge Bestseller</span>
+                    <span className="strategy-val">{stats.bestsellers}</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Tiendas especializadas</span>
+                    <span className="strategy-val">{stats.specialized}</span>
+                  </div>
+                  <div className="strategy-row">
+                    <span className="strategy-key">Rango de precios</span>
+                    <span className="strategy-val">{stats.minPrice}€ – {stats.maxPrice}€</span>
+                  </div>
+                </div>
+
+                <div className="section-title">Consejos para tu tienda</div>
+                {parseFloat(stats.avgPrice) < 30 && (
+                  <div className="tip">⚠️ El mercado tiene precios bajos. Diferénciate con <strong>efectos LED personalizables</strong> y control por app para justificar un precio mayor.</div>
+                )}
+                {stats.specialized > stats.bestsellers && (
+                  <div className="tip">🎯 Hay más tiendas especializadas que bestsellers. <strong>Oportunidad: ser el que más vende en un nicho específico</strong> (ej. solo F1, o solo circuitos RGB).</div>
+                )}
+                {stats.avgReviews && stats.avgReviews < 20 && (
+                  <div className="tip">📈 Pocos reviews por producto de media. <strong>El mercado es joven</strong>, hay sitio para entrar y posicionarte rápido con buenas fotos y descripción.</div>
+                )}
+                <div className="tip">🏎️ Tu ventaja: el <strong>ESP32 con efectos programables</strong> es único. Menciona siempre "control por app", "efectos personalizados" y "más de X animaciones" en el título.</div>
+                <div className="tip">📸 En Etsy la foto lo es todo. <strong>Haz fotos en habitación oscura</strong> para que los LEDs brillen. Ese es el mejor argumento de venta visual.</div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
