@@ -284,10 +284,10 @@ export default function App() {
   `;
 
   const remoteLabel = (v) => {
-    if (!v || v === "ninguno") return "â€”";
-    if (v === "app") return "ðŸ“± App";
-    if (v === "mando") return "ðŸŽ® Mando";
-    if (v === "ambos") return "ðŸ“±ðŸŽ® Ambos";
+    if (!v || v === "ninguno") return "—";
+    if (v === "app") return "📱 App";
+    if (v === "mando") return "🎮 Mando";
+    if (v === "ambos") return "📱🎮 Ambos";
     return v;
   };
 
@@ -295,12 +295,12 @@ export default function App() {
     <div className="app">
       <style>{css}</style>
       <div className="header">
-        <div className="header-title">ðŸ Etsy Tracker <span className="saved-badge">â— Auto-guardado</span></div>
-        <div className="header-sub">AnÃ¡lisis de competencia Â· Circuitos LED</div>
+        <div className="header-title">🏁 Etsy Tracker <span className="saved-badge">● Auto-guardado</span></div>
+        <div className="header-sub">Análisis de competencia · Circuitos LED</div>
       </div>
 
       <div className="tabs">
-        {[["list", "ðŸ“‹ Lista"], ["add", editIndex !== null ? "âœï¸ Editar" : "âž• AÃ±adir"], ["strategy", "ðŸŽ¯ Estrategia"]].map(([id, label]) => (
+        {[["list", "📋 Lista"], ["add", editIndex !== null ? "✏️ Editar" : "➕ Añadir"], ["strategy", "🎯 Estrategia"]].map(([id, label]) => (
           <button key={id} className={`tab ${activeTab === id ? "active" : ""}`}
             onClick={() => { setActiveTab(id); if (id !== "add") { setEditIndex(null); setForm(INITIAL_FORM); } }}>
             {label}
@@ -332,12 +332,12 @@ export default function App() {
                 <div className="stat-grid">
                   <div className="stat-card">
                     <div className="stat-label">Precio medio</div>
-                    <div className="stat-value">{stats.avgPrice}â‚¬</div>
-                    <div className="stat-sub">{stats.minPrice}â‚¬ â€“ {stats.maxPrice}â‚¬</div>
+                    <div className="stat-value">{stats.avgPrice}€</div>
+                    <div className="stat-sub">{stats.minPrice}€ – {stats.maxPrice}€</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">EnvÃ­o medio</div>
-                    <div className="stat-value">{stats.avgShip !== null ? `${stats.avgShip}â‚¬` : "â€”"}</div>
+                    <div className="stat-label">Envío medio</div>
+                    <div className="stat-value">{stats.avgShip !== null ? `${stats.avgShip}€` : "—"}</div>
                     <div className="stat-sub">por producto</div>
                   </div>
                   <div className="stat-card">
@@ -351,7 +351,7 @@ export default function App() {
                     <div className="stat-sub">de {stats.total} productos</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">Con vÃ­deo</div>
+                    <div className="stat-label">Con vídeo</div>
                     <div className="stat-value">{stats.withVideo}</div>
                     <div className="stat-sub">de {stats.total} productos</div>
                   </div>
@@ -365,20 +365,20 @@ export default function App() {
             )}
 
             <div className="section-title">
-              {stats ? `${stats.uniqueShops} tiendas Â· ${stats.total} productos` : "0 competidores"}
+              {stats ? `${stats.uniqueShops} tiendas · ${stats.total} productos` : "0 competidores"}
             </div>
 
             {competitors.length === 0 ? (
               <div className="empty">
-                <div className="empty-icon">ðŸŽï¸</div>
-                <div className="empty-text">AÃ±ade tu primer competidor</div>
-                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Ve a la pestaÃ±a AÃ±adir</div>
+                <div className="empty-icon">🏎️</div>
+                <div className="empty-text">Añade tu primer competidor</div>
+                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Ve a la pestaña Añadir</div>
               </div>
             ) : (
               groupedCompetitors.map((group) => (
                 <div className="shop-group" key={group.shopName}>
                   <div className="shop-header">
-                    <span className="shop-header-name">ðŸª {group.shopName}</span>
+                    <span className="shop-header-name">🏪 {group.shopName}</span>
                     <span className="shop-header-count">{group.products.length} producto{group.products.length > 1 ? "s" : ""}</span>
                   </div>
                   {group.products.map((c) => (
@@ -386,70 +386,70 @@ export default function App() {
                       <div className="comp-header">
                         <div style={{ flex: 1, marginRight: 12 }}>
                           <div className="comp-name">{c.productName || "Sin nombre de producto"}</div>
-                          {c.searchPosition && <span className="pos-tag">PosiciÃ³n #{c.searchPosition}</span>}
+                          {c.searchPosition && <span className="pos-tag">Posición #{c.searchPosition}</span>}
                         </div>
-                        <div className="comp-price">{c.price}â‚¬</div>
+                        <div className="comp-price">{c.price}€</div>
                       </div>
 
                       <div className="badges">
                         {c.isBestseller && <BADGE color="#e67e22">Bestseller</BADGE>}
                         {c.isSpecialized && <BADGE color="#2980b9">Especializada</BADGE>}
                         {c.circuits && <BADGE color="#555">{c.circuits}</BADGE>}
-                        {c.photoVideo && <BADGE color="#8e44ad">VÃ­deo</BADGE>}
+                        {c.photoVideo && <BADGE color="#8e44ad">Vídeo</BADGE>}
                         {c.remoteControl && c.remoteControl !== "ninguno" && <BADGE color="#16a085">{remoteLabel(c.remoteControl)}</BADGE>}
                       </div>
 
                       <div className="comp-stats">
                         <div className="comp-stat">
                           <div className="comp-stat-label">Ventas tienda</div>
-                          <div className="comp-stat-value">{c.shopSales || "â€”"}</div>
+                          <div className="comp-stat-value">{c.shopSales || "—"}</div>
                         </div>
                         <div className="comp-stat">
-                          <div className="comp-stat-label">ReseÃ±as prod.</div>
-                          <div className="comp-stat-value">{c.productReviews || "â€”"}</div>
+                          <div className="comp-stat-label">Reseñas prod.</div>
+                          <div className="comp-stat-value">{c.productReviews || "—"}</div>
                         </div>
                         <div className="comp-stat">
-                          <div className="comp-stat-label">ReseÃ±as tienda</div>
-                          <div className="comp-stat-value">{c.shopReviews || "â€”"}</div>
+                          <div className="comp-stat-label">Reseñas tienda</div>
+                          <div className="comp-stat-value">{c.shopReviews || "—"}</div>
                         </div>
                         <div className="comp-stat">
-                          <div className="comp-stat-label">ValoraciÃ³n</div>
-                          <div className="comp-stat-value">{c.rating ? `${c.rating}â˜…` : "â€”"}</div>
+                          <div className="comp-stat-label">Valoración</div>
+                          <div className="comp-stat-value">{c.rating ? `${c.rating}★` : "—"}</div>
                         </div>
                       </div>
 
                       <div className="comp-extra">
                         <div className="comp-extra-item">
-                          <div className="comp-extra-label">TamaÃ±os</div>
-                          <div className="comp-extra-value">{c.sizeCount || "â€”"}</div>
+                          <div className="comp-extra-label">Tamaños</div>
+                          <div className="comp-extra-value">{c.sizeCount || "—"}</div>
                         </div>
                         <div className="comp-extra-item">
-                          <div className="comp-extra-label">EnvÃ­o</div>
-                          <div className="comp-extra-value">{c.shipPrice !== "" ? `${c.shipPrice}â‚¬` : "â€”"}</div>
+                          <div className="comp-extra-label">Envío</div>
+                          <div className="comp-extra-value">{c.shipPrice !== "" ? `${c.shipPrice}€` : "—"}</div>
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Desde</div>
-                          <div className="comp-extra-value">{c.shipFrom || "â€”"}</div>
+                          <div className="comp-extra-value">{c.shipFrom || "—"}</div>
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Entrega</div>
-                          <div className="comp-extra-value">{c.shipTime || "â€”"}</div>
+                          <div className="comp-extra-value">{c.shipTime || "—"}</div>
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Fotos</div>
-                          <div className="comp-extra-value">{[c.photoReal && "Reales", c.photoAI && "IA"].filter(Boolean).join(" Â· ") || "â€”"}</div>
+                          <div className="comp-extra-value">{[c.photoReal && "Reales", c.photoAI && "IA"].filter(Boolean).join(" · ") || "—"}</div>
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Personaliz.</div>
-                          <div className="comp-extra-value" style={{fontSize:11}}>{c.customization || "â€”"}</div>
+                          <div className="comp-extra-value" style={{fontSize:11}}>{c.customization || "—"}</div>
                         </div>
                       </div>
 
                       {c.sizePrices && (
-                        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>ðŸ’° Precios por tamaÃ±o: {c.sizePrices}</div>
+                        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>💰 Precios por tamaño: {c.sizePrices}</div>
                       )}
 
-                      {c.notes && <div className="comp-notes">ðŸ“ {c.notes}</div>}
+                      {c.notes && <div className="comp-notes">📝 {c.notes}</div>}
 
                       <div className="comp-actions">
                         <button className="btn btn-outline" onClick={() => handleEdit(c.originalIndex)}>Editar</button>
@@ -479,45 +479,45 @@ export default function App() {
             </div>
             <div className="input-row field">
               <div>
-                <label className="label">Precio (â‚¬) *</label>
+                <label className="label">Precio (€) *</label>
                 <input className="input" name="price" type="number" value={form.price} onChange={handleChange} placeholder="45" />
               </div>
               <div>
-                <label className="label">PosiciÃ³n en bÃºsq.</label>
+                <label className="label">Posición en búsq.</label>
                 <input className="input" name="searchPosition" type="number" value={form.searchPosition} onChange={handleChange} placeholder="3" />
               </div>
             </div>
             <div className="input-row field">
               <div>
-                <label className="label">Cantidad de tamaÃ±os</label>
+                <label className="label">Cantidad de tamaños</label>
                 <input className="input" name="sizeCount" type="number" value={form.sizeCount} onChange={handleChange} placeholder="3" />
               </div>
               <div>
-                <label className="label">ValoraciÃ³n (1-5)</label>
+                <label className="label">Valoración (1-5)</label>
                 <input className="input" name="rating" type="number" step="0.1" min="1" max="5" value={form.rating} onChange={handleChange} placeholder="4.8" />
               </div>
             </div>
             <div className="field">
-              <label className="label">Precios por tamaÃ±o</label>
-              <input className="input" name="sizePrices" value={form.sizePrices} onChange={handleChange} placeholder="ej. S:25â‚¬ / M:45â‚¬ / L:65â‚¬" />
+              <label className="label">Precios por tamaño</label>
+              <input className="input" name="sizePrices" value={form.sizePrices} onChange={handleChange} placeholder="ej. S:25€ / M:45€ / L:65€" />
             </div>
             <div className="field">
               <label className="label">Circuitos que vende</label>
               <input className="input" name="circuits" value={form.circuits} onChange={handleChange} placeholder="F1, MotoGP, NASCAR..." />
             </div>
 
-            <Section title="ReseÃ±as y ventas" />
+            <Section title="Reseñas y ventas" />
             <div className="field">
               <label className="label">Ventas totales tienda</label>
               <input className="input" name="shopSales" type="number" value={form.shopSales} onChange={handleChange} placeholder="850" />
             </div>
             <div className="input-row field">
               <div>
-                <label className="label">ReseÃ±as del producto</label>
+                <label className="label">Reseñas del producto</label>
                 <input className="input" name="productReviews" type="number" value={form.productReviews} onChange={handleChange} placeholder="34" />
               </div>
               <div>
-                <label className="label">ReseÃ±as de la tienda</label>
+                <label className="label">Reseñas de la tienda</label>
                 <input className="input" name="shopReviews" type="number" value={form.shopReviews} onChange={handleChange} placeholder="11" />
               </div>
             </div>
@@ -527,57 +527,57 @@ export default function App() {
               <label className="label">App o mando a distancia</label>
               <select className="select" name="remoteControl" value={form.remoteControl} onChange={handleChange}>
                 <option value="ninguno">Sin control</option>
-                <option value="app">App mÃ³vil</option>
+                <option value="app">App móvil</option>
                 <option value="mando">Mando a distancia</option>
                 <option value="ambos">App + Mando</option>
               </select>
             </div>
 
-            <Section title="EnvÃ­o" />
+            <Section title="Envío" />
             <div className="input-row-3 field">
               <div>
                 <label className="label">Desde</label>
-                <input className="input" name="shipFrom" value={form.shipFrom} onChange={handleChange} placeholder="EspaÃ±a" />
+                <input className="input" name="shipFrom" value={form.shipFrom} onChange={handleChange} placeholder="España" />
               </div>
               <div>
-                <label className="label">Precio envÃ­o (â‚¬)</label>
+                <label className="label">Precio envío (€)</label>
                 <input className="input" name="shipPrice" type="number" value={form.shipPrice} onChange={handleChange} placeholder="0" />
               </div>
               <div>
                 <label className="label">Tiempo estimado</label>
-                <input className="input" name="shipTime" value={form.shipTime} onChange={handleChange} placeholder="5-10 dÃ­as" />
+                <input className="input" name="shipTime" value={form.shipTime} onChange={handleChange} placeholder="5-10 días" />
               </div>
             </div>
 
-            <Section title="Fotos y presentaciÃ³n" />
+            <Section title="Fotos y presentación" />
             <div className="checkbox-group field">
               <label className="checkbox-row">
                 <input type="checkbox" name="photoReal" checked={form.photoReal} onChange={handleChange} />
-                <span className="checkbox-label">ðŸ“· Fotos reales / caseras</span>
+                <span className="checkbox-label">📷 Fotos reales / caseras</span>
               </label>
               <label className="checkbox-row">
                 <input type="checkbox" name="photoAI" checked={form.photoAI} onChange={handleChange} />
-                <span className="checkbox-label">ðŸ¤– Fotos con IA o Photoshop</span>
+                <span className="checkbox-label">🤖 Fotos con IA o Photoshop</span>
               </label>
               <label className="checkbox-row">
                 <input type="checkbox" name="photoVideo" checked={form.photoVideo} onChange={handleChange} />
-                <span className="checkbox-label">ðŸŽ¥ Tiene vÃ­deo</span>
+                <span className="checkbox-label">🎥 Tiene vídeo</span>
               </label>
             </div>
 
             <Section title="Extras" />
             <div className="field">
-              <label className="label">PersonalizaciÃ³n disponible</label>
-              <input className="input" name="customization" value={form.customization} onChange={handleChange} placeholder="ej. colores, tamaÃ±os, nombre grabado" />
+              <label className="label">Personalización disponible</label>
+              <input className="input" name="customization" value={form.customization} onChange={handleChange} placeholder="ej. colores, tamaños, nombre grabado" />
             </div>
             <div className="checkbox-group field">
               <label className="checkbox-row">
                 <input type="checkbox" name="isBestseller" checked={form.isBestseller} onChange={handleChange} />
-                <span className="checkbox-label">ðŸ† Tiene badge Bestseller</span>
+                <span className="checkbox-label">🏆 Tiene badge Bestseller</span>
               </label>
               <label className="checkbox-row">
                 <input type="checkbox" name="isSpecialized" checked={form.isSpecialized} onChange={handleChange} />
-                <span className="checkbox-label">ðŸŽ¯ Tienda especializada (solo circuitos)</span>
+                <span className="checkbox-label">🎯 Tienda especializada (solo circuitos)</span>
               </label>
             </div>
             <div className="field">
@@ -587,7 +587,7 @@ export default function App() {
             </div>
 
             <button className="btn btn-primary btn-full" onClick={handleSubmit}>
-              {editIndex !== null ? "Guardar cambios" : "AÃ±adir producto"}
+              {editIndex !== null ? "Guardar cambios" : "Añadir producto"}
             </button>
             {editIndex !== null && (
               <button className="btn btn-outline btn-full" style={{ marginTop: 8 }}
@@ -603,32 +603,32 @@ export default function App() {
           <>
             {!stats ? (
               <div className="empty">
-                <div className="empty-icon">ðŸŽ¯</div>
-                <div className="empty-text">AÃ±ade competidores primero</div>
-                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>La estrategia se genera automÃ¡ticamente</div>
+                <div className="empty-icon">🎯</div>
+                <div className="empty-text">Añade competidores primero</div>
+                <div style={{ color: "#555", fontSize: 13, marginTop: 8 }}>La estrategia se genera automáticamente</div>
               </div>
             ) : (
               <>
                 <div className="section-title">Tu precio recomendado</div>
                 <div className="strategy-card">
-                  <div className="strategy-title">ðŸ’° Rangos de precio</div>
+                  <div className="strategy-title">💰 Rangos de precio</div>
                   <div className="strategy-row">
                     <span className="strategy-key">Entrada al mercado</span>
-                    <span className="strategy-val" style={{ color: "#e74c3c" }}>{myPriceSuggestion.low}â‚¬</span>
+                    <span className="strategy-val" style={{ color: "#e74c3c" }}>{myPriceSuggestion.low}€</span>
                   </div>
                   <div className="strategy-row">
                     <span className="strategy-key">Precio medio del mercado</span>
-                    <span className="strategy-val" style={{ color: "#f39c12" }}>{myPriceSuggestion.avg}â‚¬</span>
+                    <span className="strategy-val" style={{ color: "#f39c12" }}>{myPriceSuggestion.avg}€</span>
                   </div>
                   <div className="strategy-row">
-                    <span className="strategy-key">Precio premium (+diferenciaciÃ³n)</span>
-                    <span className="strategy-val" style={{ color: "#2ecc71" }}>{myPriceSuggestion.high}â‚¬</span>
+                    <span className="strategy-key">Precio premium (+diferenciación)</span>
+                    <span className="strategy-val" style={{ color: "#2ecc71" }}>{myPriceSuggestion.high}€</span>
                   </div>
                 </div>
 
-                <div className="section-title">AnÃ¡lisis del mercado</div>
+                <div className="section-title">Análisis del mercado</div>
                 <div className="strategy-card">
-                  <div className="strategy-title">ðŸ“Š Lo que viste</div>
+                  <div className="strategy-title">📊 Lo que viste</div>
                   <div className="strategy-row">
                     <span className="strategy-key">Tiendas analizadas</span>
                     <span className="strategy-val">{stats.uniqueShops}</span>
@@ -650,45 +650,45 @@ export default function App() {
                     <span className="strategy-val">{stats.withRemote} de {stats.total}</span>
                   </div>
                   <div className="strategy-row">
-                    <span className="strategy-key">Con vÃ­deo</span>
+                    <span className="strategy-key">Con vídeo</span>
                     <span className="strategy-val">{stats.withVideo} de {stats.total}</span>
                   </div>
                   <div className="strategy-row">
-                    <span className="strategy-key">Con personalizaciÃ³n</span>
+                    <span className="strategy-key">Con personalización</span>
                     <span className="strategy-val">{stats.withCustom} de {stats.total}</span>
                   </div>
                   <div className="strategy-row">
-                    <span className="strategy-key">EnvÃ­o medio</span>
-                    <span className="strategy-val">{stats.avgShip !== null ? `${stats.avgShip}â‚¬` : "â€”"}</span>
+                    <span className="strategy-key">Envío medio</span>
+                    <span className="strategy-val">{stats.avgShip !== null ? `${stats.avgShip}€` : "—"}</span>
                   </div>
                   <div className="strategy-row">
                     <span className="strategy-key">Rango de precios</span>
-                    <span className="strategy-val">{stats.minPrice}â‚¬ â€“ {stats.maxPrice}â‚¬</span>
+                    <span className="strategy-val">{stats.minPrice}€ – {stats.maxPrice}€</span>
                   </div>
                 </div>
 
                 <div className="section-title">Consejos para tu tienda</div>
 
                 {parseFloat(stats.avgPrice) < 30 && (
-                  <div className="tip warning">âš ï¸ El mercado tiene precios bajos. DiferÃ©nciate con <strong>efectos LED personalizables</strong> y control por app para justificar un precio mayor.</div>
+                  <div className="tip warning">⚠️ El mercado tiene precios bajos. Diferénciate con <strong>efectos LED personalizables</strong> y control por app para justificar un precio mayor.</div>
                 )}
                 {stats.withRemote < stats.total / 2 && (
-                  <div className="tip">ðŸ“± Menos de la mitad de competidores ofrece control por app o mando. <strong>Destaca tu control ESP32</strong> como una ventaja clara en el tÃ­tulo.</div>
+                  <div className="tip">📱 Menos de la mitad de competidores ofrece control por app o mando. <strong>Destaca tu control ESP32</strong> como una ventaja clara en el título.</div>
                 )}
                 {stats.withVideo < stats.total / 2 && (
-                  <div className="tip">ðŸŽ¥ Pocos competidores tienen vÃ­deo. <strong>AÃ±adir un vÃ­deo corto</strong> de los efectos LED en oscuridad puede darte una ventaja enorme.</div>
+                  <div className="tip">🎥 Pocos competidores tienen vídeo. <strong>Añadir un vídeo corto</strong> de los efectos LED en oscuridad puede darte una ventaja enorme.</div>
                 )}
                 {stats.withCustom < stats.total / 2 && (
-                  <div className="tip">ðŸŽ¨ Pocos ofrecen personalizaciÃ³n. <strong>Ofrecer circuitos a medida o colores personalizados</strong> puede diferenciarte mucho.</div>
+                  <div className="tip">🎨 Pocos ofrecen personalización. <strong>Ofrecer circuitos a medida o colores personalizados</strong> puede diferenciarte mucho.</div>
                 )}
                 {stats.specialized > stats.bestsellers && (
-                  <div className="tip">ðŸŽ¯ Hay mÃ¡s tiendas especializadas que bestsellers. <strong>Oportunidad de ser el referente</strong> en un nicho concreto como F1 o RGB.</div>
+                  <div className="tip">🎯 Hay más tiendas especializadas que bestsellers. <strong>Oportunidad de ser el referente</strong> en un nicho concreto como F1 o RGB.</div>
                 )}
                 {stats.avgReviews && stats.avgReviews < 20 && (
-                  <div className="tip">ðŸ“ˆ Pocas reseÃ±as de media por producto. <strong>El mercado es joven</strong>, hay sitio para entrar y posicionarte rÃ¡pido.</div>
+                  <div className="tip">📈 Pocas reseñas de media por producto. <strong>El mercado es joven</strong>, hay sitio para entrar y posicionarte rápido.</div>
                 )}
-                <div className="tip">ðŸŽï¸ Tu ventaja: el <strong>ESP32 con efectos programables</strong> es Ãºnico. Menciona "control por app", "efectos personalizados" y "mÃ¡s de X animaciones" en el tÃ­tulo.</div>
-                <div className="tip">ðŸ“¸ En Etsy la foto lo es todo. <strong>Haz fotos en habitaciÃ³n oscura</strong> para que los LEDs brillen al mÃ¡ximo.</div>
+                <div className="tip">🏎️ Tu ventaja: el <strong>ESP32 con efectos programables</strong> es único. Menciona "control por app", "efectos personalizados" y "más de X animaciones" en el título.</div>
+                <div className="tip">📸 En Etsy la foto lo es todo. <strong>Haz fotos en habitación oscura</strong> para que los LEDs brillen al máximo.</div>
               </>
             )}
           </>
