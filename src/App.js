@@ -4,9 +4,15 @@ const APP_STORAGE_KEYS = ["etsy-tracker-data"];
 const BACKUP_APP_ID = "etsy-tracker";
 
 const INITIAL_FORM = {
+  captureType: "",
+  source: "",
+  capturedAt: "",
+  productUrl: "",
+  shopUrl: "",
   shopName: "",
   productName: "",
   price: "",
+  currency: "",
   shopSales: "",
   productReviews: "",
   shopReviews: "",
@@ -25,8 +31,53 @@ const INITIAL_FORM = {
   photoAI: false,
   photoVideo: false,
   customization: "",
+  stockVisible: "",
+  cartCountVisible: "",
+  sellingOnEtsySince: "",
+  itemsCountVisible: "",
+  rawVisibleText: "",
   notes: "",
   circuits: "",
+};
+
+const EMPTY_CAPTURE_IMPORT = {
+  jsonText: "",
+  error: "",
+  previewType: "",
+  preview: null,
+};
+
+const PRODUCT_CAPTURE_FIELDS = [
+  ["productUrl", "URL del producto"],
+  ["productName", "Titulo"],
+  ["price", "Precio"],
+  ["currency", "Moneda"],
+  ["shopName", "Tienda"],
+  ["shopUrl", "URL de tienda"],
+  ["rating", "Valoracion visible"],
+  ["productReviews", "Numero de reseñas visible"],
+  ["shipFrom", "Desde donde se envia"],
+  ["shipTime", "Tiempo aproximado de envio"],
+  ["shipPrice", "Precio de envio"],
+  ["stockVisible", "Stock visible"],
+  ["cartCountVisible", "Cantidad en carritos"],
+  ["notes", "Notas"],
+];
+
+const SHOP_CAPTURE_FIELDS = [
+  ["shopUrl", "URL de tienda"],
+  ["shopName", "Nombre de tienda"],
+  ["shopSales", "Ventas totales visibles"],
+  ["sellingOnEtsySince", "Tiempo vendiendo en Etsy"],
+  ["itemsCountVisible", "Numero de articulos visibles"],
+  ["rating", "Valoracion visible"],
+  ["shopReviews", "Numero de reseñas visible"],
+  ["notes", "Notas"],
+];
+
+const textOrEmpty = (value) => {
+  if (value === null || value === undefined) return "";
+  return String(value);
 };
 
 const BADGE = ({ children, color }) => (
@@ -53,6 +104,7 @@ export default function App() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [editIndex, setEditIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("list");
+  const [captureImport, setCaptureImport] = useState(EMPTY_CAPTURE_IMPORT);
   const importInputRef = useRef(null);
 
   useEffect(() => {
@@ -70,7 +122,7 @@ export default function App() {
     const avgReviews = reviews.length ? Math.round(reviews.reduce((a, b) => a + b, 0) / reviews.length) : null;
     const bestsellers = competitors.filter(c => c.isBestseller).length;
     const specialized = competitors.filter(c => c.isSpecialized).length;
-    const uniqueShops = new Set(competitors.map(c => c.shopName.trim().toLowerCase())).size;
+    const uniqueShops = new Set(competitors.map(c => textOrEmpty(c.shopName).trim().toLowerCase())).size;
     const withRemote = competitors.filter(c => c.remoteControl && c.remoteControl !== "ninguno").length;
     const withVideo = competitors.filter(c => c.photoVideo).length;
     const withCustom = competitors.filter(c => c.customization).length;
@@ -82,8 +134,8 @@ export default function App() {
   const groupedCompetitors = useMemo(() => {
     const groups = {};
     competitors.forEach((c, i) => {
-      const key = c.shopName.trim().toLowerCase();
-      if (!groups[key]) groups[key] = { shopName: c.shopName, products: [] };
+      const key = textOrEmpty(c.shopName).trim().toLowerCase();
+      if (!groups[key]) groups[key] = { shopName: c.shopName || "Sin nombre de tienda", products: [] };
       groups[key].products.push({ ...c, originalIndex: i });
     });
     return Object.values(groups);
@@ -101,7 +153,7 @@ export default function App() {
   };
 
   const handleSubmit = () => {
-    if (!form.shopName || !form.price) return;
+    if (!form.shopName || (!form.price && form.captureType !== "shop")) return;
     if (editIndex !== null) {
       setCompetitors(c => c.map((item, i) => i === editIndex ? form : item));
       setEditIndex(null);
@@ -120,6 +172,101 @@ export default function App() {
 
   const handleDelete = (i) => {
     setCompetitors(c => c.filter((_, idx) => idx !== i));
+  };
+
+  const buildProductCapturePreview = (capture) => ({
+    ...INITIAL_FORM,
+    captureType: "product",
+    source: textOrEmpty(capture.source),
+    capturedAt: textOrEmpty(capture.capturedAt),
+    productUrl: textOrEmpty(capture.productUrl),
+    productName: textOrEmpty(capture.productTitle),
+    price: textOrEmpty(capture.productPrice),
+    currency: textOrEmpty(capture.currency),
+    shopName: textOrEmpty(capture.shopName),
+    shopUrl: textOrEmpty(capture.shopUrl),
+    rating: textOrEmpty(capture.ratingVisible),
+    productReviews: textOrEmpty(capture.reviewsCountVisible),
+    shipFrom: textOrEmpty(capture.shipsFrom),
+    shipTime: textOrEmpty(capture.estimatedDeliveryTime),
+    shipPrice: textOrEmpty(capture.shippingPrice),
+    stockVisible: textOrEmpty(capture.stockVisible),
+    cartCountVisible: textOrEmpty(capture.cartCountVisible),
+    rawVisibleText: textOrEmpty(capture.rawVisibleText),
+    notes: textOrEmpty(capture.notes),
+  });
+
+  const buildShopCapturePreview = (capture) => ({
+    ...INITIAL_FORM,
+    captureType: "shop",
+    source: textOrEmpty(capture.source),
+    capturedAt: textOrEmpty(capture.capturedAt),
+    shopUrl: textOrEmpty(capture.shopUrl),
+    shopName: textOrEmpty(capture.shopName),
+    shopSales: textOrEmpty(capture.totalSalesVisible),
+    sellingOnEtsySince: textOrEmpty(capture.sellingOnEtsySince),
+    itemsCountVisible: textOrEmpty(capture.itemsCountVisible),
+    rating: textOrEmpty(capture.ratingVisible),
+    shopReviews: textOrEmpty(capture.reviewsCountVisible),
+    rawVisibleText: textOrEmpty(capture.rawVisibleText),
+    notes: textOrEmpty(capture.notes),
+  });
+
+  const handleCaptureTextChange = (e) => {
+    setCaptureImport(current => ({ ...current, jsonText: e.target.value, error: "" }));
+  };
+
+  const handleProcessCapture = () => {
+    try {
+      const parsed = JSON.parse(captureImport.jsonText);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        setCaptureImport(current => ({ ...current, error: "El JSON debe ser un objeto de captura." }));
+        return;
+      }
+
+      if (parsed.captureType === "product") {
+        setCaptureImport(current => ({
+          ...current,
+          error: "",
+          previewType: "product",
+          preview: buildProductCapturePreview(parsed),
+        }));
+        return;
+      }
+
+      if (parsed.captureType === "shop") {
+        setCaptureImport(current => ({
+          ...current,
+          error: "",
+          previewType: "shop",
+          preview: buildShopCapturePreview(parsed),
+        }));
+        return;
+      }
+
+      setCaptureImport(current => ({ ...current, error: "captureType debe ser product o shop." }));
+    } catch {
+      setCaptureImport(current => ({ ...current, error: "El texto pegado no es un JSON valido." }));
+    }
+  };
+
+  const handleCapturePreviewChange = (e) => {
+    const { name, value } = e.target;
+    setCaptureImport(current => ({
+      ...current,
+      preview: { ...current.preview, [name]: value },
+    }));
+  };
+
+  const handleSaveCapture = () => {
+    if (!captureImport.preview) return;
+    setCompetitors(current => [...current, captureImport.preview]);
+    setCaptureImport(EMPTY_CAPTURE_IMPORT);
+    setActiveTab("list");
+  };
+
+  const handleCancelCapture = () => {
+    setCaptureImport(EMPTY_CAPTURE_IMPORT);
   };
 
   const getAppLocalStorageData = () => {
@@ -281,6 +428,11 @@ export default function App() {
     .backup-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
     .backup-tools .btn-danger { grid-column: 1 / -1; }
     .hidden-file-input { display: none; }
+    .textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+    .capture-preview { margin-top: 16px; }
+    .capture-actions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+    .capture-error { background: #1a0d00; border: 1px solid #c0392b; border-radius: 6px; color: #ff9b8f; font-size: 13px; padding: 10px 12px; margin-top: 10px; }
+    .capture-meta { color: #777; font-size: 12px; line-height: 1.5; margin-top: 4px; }
   `;
 
   const remoteLabel = (v) => {
@@ -289,6 +441,12 @@ export default function App() {
     if (v === "mando") return "🎮 Mando";
     if (v === "ambos") return "📱🎮 Ambos";
     return v;
+  };
+
+  const moneyLabel = (value, currency = "€") => {
+    if (value === null || value === undefined || value === "") return "—";
+    const text = String(value);
+    return /[a-zA-Z]/.test(text) ? text : `${text}${currency}`;
   };
 
   return (
@@ -300,7 +458,7 @@ export default function App() {
       </div>
 
       <div className="tabs">
-        {[["list", "📋 Lista"], ["add", editIndex !== null ? "✏️ Editar" : "➕ Añadir"], ["strategy", "🎯 Estrategia"]].map(([id, label]) => (
+        {[["list", "📋 Lista"], ["add", editIndex !== null ? "✏️ Editar" : "➕ Añadir"], ["capture", "📥 Captura"], ["strategy", "🎯 Estrategia"]].map(([id, label]) => (
           <button key={id} className={`tab ${activeTab === id ? "active" : ""}`}
             onClick={() => { setActiveTab(id); if (id !== "add") { setEditIndex(null); setForm(INITIAL_FORM); } }}>
             {label}
@@ -385,13 +543,15 @@ export default function App() {
                     <div className="competitor-card" key={c.originalIndex}>
                       <div className="comp-header">
                         <div style={{ flex: 1, marginRight: 12 }}>
-                          <div className="comp-name">{c.productName || "Sin nombre de producto"}</div>
+                          <div className="comp-name">{c.captureType === "shop" ? "Ficha de tienda" : (c.productName || "Sin nombre de producto")}</div>
                           {c.searchPosition && <span className="pos-tag">Posición #{c.searchPosition}</span>}
                         </div>
-                        <div className="comp-price">{c.price}€</div>
+                        <div className="comp-price">{moneyLabel(c.price)}</div>
                       </div>
 
                       <div className="badges">
+                        {c.captureType === "product" && <BADGE color="#16a085">Captura producto</BADGE>}
+                        {c.captureType === "shop" && <BADGE color="#8e44ad">Captura tienda</BADGE>}
                         {c.isBestseller && <BADGE color="#e67e22">Bestseller</BADGE>}
                         {c.isSpecialized && <BADGE color="#2980b9">Especializada</BADGE>}
                         {c.circuits && <BADGE color="#555">{c.circuits}</BADGE>}
@@ -425,7 +585,7 @@ export default function App() {
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Envío</div>
-                          <div className="comp-extra-value">{c.shipPrice !== "" ? `${c.shipPrice}€` : "—"}</div>
+                          <div className="comp-extra-value">{moneyLabel(c.shipPrice)}</div>
                         </div>
                         <div className="comp-extra-item">
                           <div className="comp-extra-label">Desde</div>
@@ -594,6 +754,63 @@ export default function App() {
                 onClick={() => { setEditIndex(null); setForm(INITIAL_FORM); setActiveTab("list"); }}>
                 Cancelar
               </button>
+            )}
+          </div>
+        )}
+
+        {/* CAPTURE IMPORT TAB */}
+        {activeTab === "capture" && (
+          <div className="form-card">
+            <div className="form-title">Importar captura Etsy</div>
+            <div className="capture-meta">Pega aqui el JSON generado manualmente desde Etsy. La app no visita URLs ni captura datos por si sola.</div>
+
+            <Section title="JSON de captura" />
+            <div className="field">
+              <textarea
+                className="input textarea"
+                value={captureImport.jsonText}
+                onChange={handleCaptureTextChange}
+                placeholder={`{\n  "captureType": "product",\n  "source": "etsy"\n}`}
+              />
+            </div>
+            <button className="btn btn-primary btn-full" onClick={handleProcessCapture}>Procesar captura</button>
+            {captureImport.error && <div className="capture-error">{captureImport.error}</div>}
+
+            {captureImport.preview && (
+              <div className="capture-preview">
+                <Section title={captureImport.previewType === "product" ? "Vista previa de producto" : "Vista previa de tienda"} />
+                {(captureImport.previewType === "product" ? PRODUCT_CAPTURE_FIELDS : SHOP_CAPTURE_FIELDS).map(([name, label]) => (
+                  <div className="field" key={name}>
+                    <label className="label">{label}</label>
+                    {name === "notes" ? (
+                      <textarea
+                        className="input"
+                        name={name}
+                        value={captureImport.preview[name] || ""}
+                        onChange={handleCapturePreviewChange}
+                        rows={3}
+                        style={{ resize: "vertical" }}
+                      />
+                    ) : (
+                      <input
+                        className="input"
+                        name={name}
+                        value={captureImport.preview[name] || ""}
+                        onChange={handleCapturePreviewChange}
+                      />
+                    )}
+                  </div>
+                ))}
+                <div className="capture-meta">
+                  Raw visible text guardado: {captureImport.preview.rawVisibleText ? "si" : "vacio"}.
+                </div>
+                <div className="capture-actions">
+                  <button className="btn btn-primary" onClick={handleSaveCapture}>
+                    {captureImport.previewType === "product" ? "Guardar producto competidor" : "Guardar tienda competidora"}
+                  </button>
+                  <button className="btn btn-outline" onClick={handleCancelCapture}>Cancelar</button>
+                </div>
+              </div>
             )}
           </div>
         )}
