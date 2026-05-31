@@ -33,8 +33,13 @@ const INITIAL_FORM = {
   customization: "",
   stockVisible: "",
   cartCountVisible: "",
+  sellerName: "",
+  shopLocation: "",
   sellingOnEtsySince: "",
   itemsCountVisible: "",
+  responseTime: "",
+  favoritesVisible: "",
+  publishedAtVisible: "",
   rawVisibleText: "",
   notes: "",
   circuits: "",
@@ -54,6 +59,13 @@ const PRODUCT_CAPTURE_FIELDS = [
   ["currency", "Moneda"],
   ["shopName", "Tienda"],
   ["shopUrl", "URL de tienda"],
+  ["shopSales", "Ventas visibles de tienda"],
+  ["shopReviews", "Reseñas visibles de tienda"],
+  ["sellingOnEtsySince", "Tiempo vendiendo en Etsy"],
+  ["shopLocation", "Pais/origen de tienda"],
+  ["responseTime", "Tiempo de respuesta"],
+  ["favoritesVisible", "Favoritos visibles"],
+  ["publishedAtVisible", "Fecha de publicacion"],
   ["rating", "Valoracion visible"],
   ["productReviews", "Numero de reseñas visible"],
   ["shipFrom", "Desde donde se envia"],
@@ -72,6 +84,8 @@ const SHOP_CAPTURE_FIELDS = [
   ["itemsCountVisible", "Numero de articulos visibles"],
   ["rating", "Valoracion visible"],
   ["shopReviews", "Numero de reseñas visible"],
+  ["shopLocation", "Pais/origen de tienda"],
+  ["responseTime", "Tiempo de respuesta"],
   ["notes", "Notas"],
 ];
 
@@ -85,6 +99,61 @@ const parseAmount = (value) => {
   if (!match) return null;
   return parseFloat(match[0].replace(",", "."));
 };
+
+const firstRawMatch = (rawText, patterns) => {
+  const raw = textOrEmpty(rawText);
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match) return textOrEmpty(match[1] || match[0]);
+  }
+  return "";
+};
+
+const fillIfEmpty = (value, fallback) => textOrEmpty(value) || textOrEmpty(fallback);
+
+const extractRawSignals = (item) => {
+  const raw = textOrEmpty(item.rawVisibleText);
+  if (!raw) return {};
+
+  const genericShopSummary = raw.match(/([A-ZÀ-ÿ][^·]{1,60})\s+([A-Za-z0-9][A-Za-z0-9_-]{2,})\s+·\s+([^·]+?)\s+([0-5][.,]\d)\s*\(([^)]+)\)\s+·\s+(\d+[.,]?\d*\s+ventas?)\s+·\s+([^·.]+?en Etsy)/i);
+  const knownShopSummary = item.shopName
+    ? raw.match(new RegExp(`([^·]{0,80})${item.shopName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+·\\s+([^·]+?)\\s+([0-5][.,]\\d)\\s*\\(([^)]+)\\)\\s+·\\s+(\\d+[.,]?\\d*\\s+ventas?)\\s+·\\s+([^·.]+?en Etsy)`, "i"))
+    : null;
+
+  return {
+    sellerName: genericShopSummary?.[1],
+    shopName: item.shopName || genericShopSummary?.[2],
+    shopLocation: knownShopSummary?.[2] || genericShopSummary?.[3],
+    shopRating: knownShopSummary?.[3] || genericShopSummary?.[4],
+    shopReviews: knownShopSummary?.[4] || genericShopSummary?.[5],
+    shopSales: knownShopSummary?.[5] || genericShopSummary?.[6] || firstRawMatch(raw, [/(\d+[.,]?\d*\s+ventas?)/i]),
+    sellingOnEtsySince: knownShopSummary?.[6] || genericShopSummary?.[7] || firstRawMatch(raw, [/(\d+\s+año[s]?\s+en Etsy)/i, /(\d+\s+meses?\s+en Etsy)/i, /(En Etsy desde\s+\d{4})/i]),
+    itemsCountVisible: firstRawMatch(raw, [/Buscar entre los\s+(\d+[.,]?\d*\s+artículos?)/i, /Buscar entre los\s+(\d+[.,]?\d*\s+articulos?)/i, /Todos\s+(\d+[.,]?\d*)/i]),
+    responseTime: firstRawMatch(raw, [/(Normalmente responde en [^.]+?)(?=\s+Respuestas|\s+Tiene|\s+Más artículos|$)/i, /(Normalmente responde en \d+\s+\w+)/i]),
+    favoritesVisible: firstRawMatch(raw, [/(\d+[.,]?\d*\s+favoritos?)/i]),
+    publishedAtVisible: firstRawMatch(raw, [/(Fecha de publicación:\s*[^.]+?)(?=\s+\d+\s+favoritos|\s+Página de inicio|$)/i]),
+  };
+};
+
+const enrichCaptureWithRawSignals = (item) => {
+  const rawSignals = extractRawSignals(item);
+  return {
+    ...item,
+    sellerName: fillIfEmpty(item.sellerName, rawSignals.sellerName),
+    shopName: fillIfEmpty(item.shopName, rawSignals.shopName),
+    shopLocation: fillIfEmpty(item.shopLocation, rawSignals.shopLocation),
+    shopSales: fillIfEmpty(item.shopSales, rawSignals.shopSales),
+    sellingOnEtsySince: fillIfEmpty(item.sellingOnEtsySince, rawSignals.sellingOnEtsySince),
+    itemsCountVisible: fillIfEmpty(item.itemsCountVisible, rawSignals.itemsCountVisible),
+    responseTime: fillIfEmpty(item.responseTime, rawSignals.responseTime),
+    favoritesVisible: fillIfEmpty(item.favoritesVisible, rawSignals.favoritesVisible),
+    publishedAtVisible: fillIfEmpty(item.publishedAtVisible, rawSignals.publishedAtVisible),
+    shopReviews: fillIfEmpty(item.shopReviews, rawSignals.shopReviews),
+    rating: fillIfEmpty(item.rating, item.captureType === "shop" ? rawSignals.shopRating : ""),
+  };
+};
+
+const normalizeUrl = (value) => textOrEmpty(value).split("?")[0].replace(/\/$/, "").toLowerCase();
 
 const BADGE = ({ children, color }) => (
   <span style={{
@@ -160,6 +229,9 @@ export default function App() {
 
   const handleSubmit = () => {
     if (!form.shopName || (!form.price && form.captureType !== "shop")) return;
+    const duplicateWarning = getDuplicateWarning(form, editIndex);
+    if (duplicateWarning && !window.confirm(duplicateWarning)) return;
+
     if (editIndex !== null) {
       setCompetitors(c => c.map((item, i) => i === editIndex ? form : item));
       setEditIndex(null);
@@ -180,7 +252,23 @@ export default function App() {
     setCompetitors(c => c.filter((_, idx) => idx !== i));
   };
 
-  const buildProductCapturePreview = (capture) => ({
+  const getDuplicateWarning = (item, ignoreIndex = null) => {
+    const productUrl = normalizeUrl(item.productUrl);
+    const shopUrl = normalizeUrl(item.shopUrl);
+    const duplicate = competitors.find((existing, index) => {
+      if (index === ignoreIndex) return false;
+      if (item.captureType === "product" && productUrl) return normalizeUrl(existing.productUrl) === productUrl;
+      if (item.captureType === "shop" && shopUrl) return normalizeUrl(existing.shopUrl) === shopUrl;
+      return false;
+    });
+
+    if (!duplicate) return "";
+    return item.captureType === "shop"
+      ? "Esta tienda ya existe en la app. ¿Quieres guardar una copia igualmente?"
+      : "Este producto ya existe en la app. ¿Quieres guardar una copia igualmente?";
+  };
+
+  const buildProductCapturePreview = (capture) => enrichCaptureWithRawSignals({
     ...INITIAL_FORM,
     captureType: "product",
     source: textOrEmpty(capture.source),
@@ -202,7 +290,7 @@ export default function App() {
     notes: textOrEmpty(capture.notes),
   });
 
-  const buildShopCapturePreview = (capture) => ({
+  const buildShopCapturePreview = (capture) => enrichCaptureWithRawSignals({
     ...INITIAL_FORM,
     captureType: "shop",
     source: textOrEmpty(capture.source),
@@ -266,6 +354,9 @@ export default function App() {
 
   const handleSaveCapture = () => {
     if (!captureImport.preview) return;
+    const duplicateWarning = getDuplicateWarning(captureImport.preview);
+    if (duplicateWarning && !window.confirm(duplicateWarning)) return;
+
     setCompetitors(current => [...current, captureImport.preview]);
     setCaptureImport(EMPTY_CAPTURE_IMPORT);
     setActiveTab("list");
@@ -785,6 +876,16 @@ export default function App() {
                 </div>
                 <div className="input-row field">
                   <div>
+                    <label className="label">Vendedor visible</label>
+                    <input className="input" name="sellerName" value={form.sellerName} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="label">Pais/origen tienda</label>
+                    <input className="input" name="shopLocation" value={form.shopLocation} onChange={handleChange} />
+                  </div>
+                </div>
+                <div className="input-row field">
+                  <div>
                     <label className="label">Cantidad en carritos</label>
                     <input className="input" name="cartCountVisible" value={form.cartCountVisible} onChange={handleChange} />
                   </div>
@@ -796,6 +897,20 @@ export default function App() {
                 <div className="field">
                   <label className="label">Tiempo vendiendo en Etsy</label>
                   <input className="input" name="sellingOnEtsySince" value={form.sellingOnEtsySince} onChange={handleChange} />
+                </div>
+                <div className="field">
+                  <label className="label">Tiempo de respuesta</label>
+                  <input className="input" name="responseTime" value={form.responseTime} onChange={handleChange} />
+                </div>
+                <div className="input-row field">
+                  <div>
+                    <label className="label">Favoritos visibles</label>
+                    <input className="input" name="favoritesVisible" value={form.favoritesVisible} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="label">Fecha de publicacion</label>
+                    <input className="input" name="publishedAtVisible" value={form.publishedAtVisible} onChange={handleChange} />
+                  </div>
                 </div>
                 <div className="field">
                   <label className="label">Texto visible bruto</label>
