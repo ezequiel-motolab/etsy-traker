@@ -111,6 +111,14 @@ const firstRawMatch = (rawText, patterns) => {
 
 const fillIfEmpty = (value, fallback) => textOrEmpty(value) || textOrEmpty(fallback);
 
+const cleanSellerName = (value) => {
+  const text = textOrEmpty(value).trim();
+  if (!text) return "";
+  const blocked = /ver en el idioma|fotos de|reseñas|artículo|articulo|etsy categor|todo\.|traducir|comprador|respuesta/i;
+  const looksLikeName = /^[A-ZÀ-ÿ][A-Za-zÀ-ÿ' -]{1,40}$/.test(text) && text.split(/\s+/).length <= 3;
+  return !blocked.test(text) && looksLikeName ? text : "";
+};
+
 const extractRawSignals = (item) => {
   const raw = textOrEmpty(item.rawVisibleText);
   if (!raw) return {};
@@ -121,7 +129,7 @@ const extractRawSignals = (item) => {
     : null;
 
   return {
-    sellerName: genericShopSummary?.[1],
+    sellerName: cleanSellerName(knownShopSummary?.[1]) || cleanSellerName(genericShopSummary?.[1]),
     shopName: item.shopName || genericShopSummary?.[2],
     shopLocation: knownShopSummary?.[2] || genericShopSummary?.[3],
     shopRating: knownShopSummary?.[3] || genericShopSummary?.[4],
