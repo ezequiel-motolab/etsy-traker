@@ -80,6 +80,12 @@ const textOrEmpty = (value) => {
   return String(value);
 };
 
+const parseAmount = (value) => {
+  const match = textOrEmpty(value).match(/\d+(?:[.,]\d{1,2})?/);
+  if (!match) return null;
+  return parseFloat(match[0].replace(",", "."));
+};
+
 const BADGE = ({ children, color }) => (
   <span style={{
     background: color, color: "#fff", borderRadius: 4,
@@ -114,8 +120,8 @@ export default function App() {
 
   const stats = useMemo(() => {
     if (!competitors.length) return null;
-    const prices = competitors.map(c => parseFloat(c.price)).filter(Boolean);
-    const reviews = competitors.map(c => parseFloat(c.productReviews || c.shopReviews)).filter(Boolean);
+    const prices = competitors.map(c => parseAmount(c.price)).filter(v => v !== null);
+    const reviews = competitors.map(c => parseAmount(c.productReviews || c.shopReviews)).filter(v => v !== null);
     const avgPrice = prices.length ? (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2) : null;
     const minPrice = prices.length ? Math.min(...prices).toFixed(2) : null;
     const maxPrice = prices.length ? Math.max(...prices).toFixed(2) : null;
@@ -126,7 +132,7 @@ export default function App() {
     const withRemote = competitors.filter(c => c.remoteControl && c.remoteControl !== "ninguno").length;
     const withVideo = competitors.filter(c => c.photoVideo).length;
     const withCustom = competitors.filter(c => c.customization).length;
-    const shipPrices = competitors.map(c => parseFloat(c.shipPrice)).filter(v => !isNaN(v) && v >= 0);
+    const shipPrices = competitors.map(c => parseAmount(c.shipPrice)).filter(v => v !== null && v >= 0);
     const avgShip = shipPrices.length ? (shipPrices.reduce((a, b) => a + b, 0) / shipPrices.length).toFixed(2) : null;
     return { avgPrice, minPrice, maxPrice, avgReviews, bestsellers, specialized, uniqueShops, withRemote, withVideo, withCustom, avgShip, total: competitors.length };
   }, [competitors]);
@@ -640,7 +646,7 @@ export default function App() {
             <div className="input-row field">
               <div>
                 <label className="label">Precio (€) *</label>
-                <input className="input" name="price" type="number" value={form.price} onChange={handleChange} placeholder="45" />
+                <input className="input" name="price" value={form.price} onChange={handleChange} placeholder="45" />
               </div>
               <div>
                 <label className="label">Posición en búsq.</label>
@@ -654,7 +660,7 @@ export default function App() {
               </div>
               <div>
                 <label className="label">Valoración (1-5)</label>
-                <input className="input" name="rating" type="number" step="0.1" min="1" max="5" value={form.rating} onChange={handleChange} placeholder="4.8" />
+                <input className="input" name="rating" value={form.rating} onChange={handleChange} placeholder="4.8" />
               </div>
             </div>
             <div className="field">
@@ -669,16 +675,16 @@ export default function App() {
             <Section title="Reseñas y ventas" />
             <div className="field">
               <label className="label">Ventas totales tienda</label>
-              <input className="input" name="shopSales" type="number" value={form.shopSales} onChange={handleChange} placeholder="850" />
+              <input className="input" name="shopSales" value={form.shopSales} onChange={handleChange} placeholder="850" />
             </div>
             <div className="input-row field">
               <div>
                 <label className="label">Reseñas del producto</label>
-                <input className="input" name="productReviews" type="number" value={form.productReviews} onChange={handleChange} placeholder="34" />
+                <input className="input" name="productReviews" value={form.productReviews} onChange={handleChange} placeholder="34" />
               </div>
               <div>
                 <label className="label">Reseñas de la tienda</label>
-                <input className="input" name="shopReviews" type="number" value={form.shopReviews} onChange={handleChange} placeholder="11" />
+                <input className="input" name="shopReviews" value={form.shopReviews} onChange={handleChange} placeholder="11" />
               </div>
             </div>
 
@@ -701,7 +707,7 @@ export default function App() {
               </div>
               <div>
                 <label className="label">Precio envío (€)</label>
-                <input className="input" name="shipPrice" type="number" value={form.shipPrice} onChange={handleChange} placeholder="0" />
+                <input className="input" name="shipPrice" value={form.shipPrice} onChange={handleChange} placeholder="0" />
               </div>
               <div>
                 <label className="label">Tiempo estimado</label>
@@ -745,6 +751,59 @@ export default function App() {
               <textarea className="input" name="notes" value={form.notes} onChange={handleChange}
                 placeholder="Cualquier cosa que quieras recordar..." rows={3} style={{ resize: "vertical" }} />
             </div>
+
+            {form.captureType && (
+              <>
+                <Section title="Datos capturados de Etsy" />
+                <div className="input-row field">
+                  <div>
+                    <label className="label">Tipo de captura</label>
+                    <input className="input" name="captureType" value={form.captureType} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="label">Capturado el</label>
+                    <input className="input" name="capturedAt" value={form.capturedAt} onChange={handleChange} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label className="label">URL del producto</label>
+                  <input className="input" name="productUrl" value={form.productUrl} onChange={handleChange} />
+                </div>
+                <div className="field">
+                  <label className="label">URL de tienda</label>
+                  <input className="input" name="shopUrl" value={form.shopUrl} onChange={handleChange} />
+                </div>
+                <div className="input-row field">
+                  <div>
+                    <label className="label">Moneda</label>
+                    <input className="input" name="currency" value={form.currency} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="label">Stock visible</label>
+                    <input className="input" name="stockVisible" value={form.stockVisible} onChange={handleChange} />
+                  </div>
+                </div>
+                <div className="input-row field">
+                  <div>
+                    <label className="label">Cantidad en carritos</label>
+                    <input className="input" name="cartCountVisible" value={form.cartCountVisible} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="label">Articulos visibles</label>
+                    <input className="input" name="itemsCountVisible" value={form.itemsCountVisible} onChange={handleChange} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label className="label">Tiempo vendiendo en Etsy</label>
+                  <input className="input" name="sellingOnEtsySince" value={form.sellingOnEtsySince} onChange={handleChange} />
+                </div>
+                <div className="field">
+                  <label className="label">Texto visible bruto</label>
+                  <textarea className="input" name="rawVisibleText" value={form.rawVisibleText} onChange={handleChange}
+                    rows={4} style={{ resize: "vertical" }} />
+                </div>
+              </>
+            )}
 
             <button className="btn btn-primary btn-full" onClick={handleSubmit}>
               {editIndex !== null ? "Guardar cambios" : "Añadir producto"}
